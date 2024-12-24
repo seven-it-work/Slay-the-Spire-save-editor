@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "element-plus": "^2.8.1",
+    "v-clipboard": "^3.0.0-next.1",
     "vue": "^3.4.37"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.2",
+    "js-base64": "^3.7.7",
     "vite": "^5.4.1"
   }
 }
