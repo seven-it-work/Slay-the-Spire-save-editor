@@ -1,5 +1,10 @@
 <template>
     <div>
+      <el-upload style="margin-top:100px" action="" drag accept=".autosave"
+                 :before-upload="getUploadFile">
+        <i class="el-icon-upload"></i>
+        <div class="el-upload__text">将.autosave文件拖到此处</div>
+      </el-upload>
         <div>
             <el-input
                     type="textarea"
@@ -66,11 +71,9 @@
 
             <el-button type="primary" style="margin-top:30px;margin-bottom:30px" @click="exportFile">生成存档编码
             </el-button>
-            <el-button type="primary" style="margin-top:30px;margin-bottom:30px" v-clipboard:copy="jsonTxt"
-                       v-clipboard:success="onCopySuccess" v-clipboard:error="onCopyFail">复制到剪贴板
+            <el-button type="primary" style="margin-top:30px;margin-bottom:30px" @click="copyData">复制Json到剪贴板
             </el-button>
 
-            {{ dialogCardsVisible }}
             <el-dialog :title="inputCardTitle" v-model="dialogCardsVisible">
                 <el-input v-model="filterCards" clearable placeholder="过滤卡片 id / name"></el-input>
                 <el-table :data="tableCardsKeys" height="450" highlight-current-row
@@ -117,6 +120,7 @@
 import allPotions from './config/potions'
 import allRelics from './config/relics'
 import allCards from './config/cards'
+import {Base64} from 'js-base64'
 
 function foundInMap(map, key, foundAttrGet) {
     const temp = `没有找到${key}`
@@ -144,10 +148,27 @@ export default {
             allTableCards: allCards,
             allTableRelics: allRelics,
             filterRelics: '',
-            filterCards: ''
+            filterCards: '',
         }
     },
     methods: {
+      getUploadFile(file) {
+        let fileReader = new FileReader()
+        fileReader.readAsText(file)
+        fileReader.onload = e => this.decodeData(fileReader.result)
+        return false
+      },
+      decodeData(text) {
+        let key = ['k', 'e', 'y']
+        let result = Base64.decode(text)
+            .split('')
+            .map(c => c.charCodeAt(0))
+        for (let i = 0; i < result.length; i++) {
+          result[i] = result[i] ^ key[i % key.length].charCodeAt(0)
+        }
+        let json = JSON.parse(String.fromCharCode(...result))
+        this.jsonTxt=String.fromCharCode(...result)
+      },
         parsing() {
             try {
                 let json = JSON.parse(this.jsonTxt)
@@ -252,35 +273,42 @@ export default {
             })
         },
         exportFile() {
-
-
             let jsonString = JSON.stringify(this.jsonObj)
             this.jsonTxt = jsonString
-
-            // let key = ['k', 'e', 'y']
-            // let chars = jsonString.split('').map(c => c.charCodeAt(0))
-            // for (let i = 0; i < chars.length; i++) {
-            //   chars[i] = chars[i] ^ key[i % key.length].charCodeAt(0)
-            // }
-            //
-            // this.output = Base64.encode(String.fromCharCode(...chars))
-            // this.$message({
-            //   message: '生成存档编码成功',
-            //   type: 'success'
-            // })
-        },
-        onCopySuccess(e) {
+            let key = ['k', 'e', 'y']
+            let chars = jsonString.split('').map(c => c.charCodeAt(0))
+            for (let i = 0; i < chars.length; i++) {
+              chars[i] = chars[i] ^ key[i % key.length].charCodeAt(0)
+            }
             this.$message({
-                message: '已复制到剪贴板',
-                type: 'success'
+              message: '生成存档编码成功',
+              type: 'success'
             })
-        },
-        onCopyFail(e) {
+          this.$clipboard(Base64.encode(String.fromCharCode(...chars))).then(()=>{
             this.$message({
-                message: '复制失败',
-                type: 'danger'
+              message: '存档编码已复制到剪贴板',
+              type: 'success'
             })
-        }
+          }).catch(()=>{
+            this.$message({
+              message: '复制失败',
+              type: 'danger'
+            })
+          })
+        },
+        copyData(){
+          this.$clipboard(this.output).then(()=>{
+            this.$message({
+              message: '已复制到剪贴板',
+              type: 'success'
+            })
+          }).catch(()=>{
+            this.$message({
+              message: '复制失败',
+              type: 'danger'
+            })
+          })
+        },
     },
     computed: {
         dropAllPotions() {
